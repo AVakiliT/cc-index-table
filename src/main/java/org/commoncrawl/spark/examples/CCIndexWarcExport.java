@@ -17,6 +17,7 @@
 package org.commoncrawl.spark.examples;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -117,20 +118,29 @@ public class CCIndexWarcExport extends CCIndexExport {
 		long to = offset + length - 1;
 		S3Object s3obj = null;
 		try {
-			s3obj = s3.getObject(COMMON_CRAWL_BUCKET, filename, null, null, null, null, from, to);
-			byte[] bytes = ServiceUtils.readInputStreamToBytes(s3obj.getDataInputStream());
-			s3obj.closeDataInputStream();
-			return bytes;
-		} catch (IOException | ServiceException e) {
-			LOG.error("Failed to fetch s3://{}/{} (bytes = {}-{}): {}", COMMON_CRAWL_BUCKET, filename, from, to, e);
-		} finally {
-			if (s3obj != null) {
-				try {
-					s3obj.closeDataInputStream();
-				} catch (IOException e) {
-				}
+			try (RandomAccessFile randomAccessFile = new RandomAccessFile(COMMON_CRAWL_BUCKET + '/' + filename, "r"))
+			{
+				byte[] buffer = new byte[length];
+				randomAccessFile.seek(from);
+				randomAccessFile.readFully(buffer);
+				return buffer;
 			}
+//			s3obj = s3.getObject(COMMON_CRAWL_BUCKET, filename, null, null, null, null, from, to);
+//			byte[] bytes = ServiceUtils.readInputStreamToBytes(s3obj.getDataInputStream());
+//			s3obj.closeDataInputStream();
+//			return bytes;
+		} catch (IOException e) {
+//			LOG.error("Failed to fetch s3://{}/{} (bytes = {}-{}): {}", COMMON_CRAWL_BUCKET, filename, from, to, e);
+			LOG.error("Failed to fetch {}/{} (bytes = {}-{}): {}", COMMON_CRAWL_BUCKET, filename, from, to, e);
 		}
+//		finally {
+//			if (s3obj != null) {
+//				try {
+//					s3obj.closeDataInputStream();
+//				} catch (IOException e) {
+//				}
+//			}
+//		}
 		return null;
 	}
 
@@ -172,7 +182,8 @@ public class CCIndexWarcExport extends CCIndexExport {
 		//   <Text url, byte[] warc_record>
 		JavaPairRDD<Text,byte[]> res = rdd.mapPartitionsToPair((Iterator<Row> rows) -> {
 			ArrayList<scala.Tuple2<Text, byte[]>> reslist = new ArrayList<>();
-			S3Service s3 = new RestS3Service(null);
+//			S3Service s3 = new RestS3Service(null);
+			S3Service s3 = null;
 			while (rows.hasNext()) {
 				Row row = rows.next();
 				String url = row.getString(0);
