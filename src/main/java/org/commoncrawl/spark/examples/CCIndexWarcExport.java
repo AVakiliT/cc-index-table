@@ -48,7 +48,7 @@ public class CCIndexWarcExport extends CCIndexExport {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CCIndexExport.class);
 
-	protected static final String COMMON_CRAWL_BUCKET = "/project/6004803/smucker/commoncrawl";
+	protected static final String COMMON_CRAWL_BUCKET = "/project/6004803/smucker/group-data/commoncrawl";
 
 	protected int numRecordsPerWarcFile = 10000;
 	protected String warcPrefix = "COMMON-CRAWL-EXPORT";
